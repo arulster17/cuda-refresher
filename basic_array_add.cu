@@ -1,11 +1,11 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-// Kernel: adds two arrays
+// Kernel: out[x] = a[x] + b[x]
 __global__ void add(int n, const int* a, const int* b, int* c) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < n) {
-        c[idx] = a[idx] + b[idx];
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        c[i] = a[i] + b[i];
     }
 }
 
