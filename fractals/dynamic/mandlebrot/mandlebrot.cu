@@ -50,7 +50,7 @@ __global__ void drawGradient(uchar4* pixels, int width, int height, double xmin,
     int iter = 0;
     while (zx*zx + zy*zy < 4.0f && iter < maxIters) {
 
-        if (iter % 20 == 19) {
+        if (iter % 32 == 31) {
             if ((zx - zxPrev)*(zx - zxPrev) + (zy - zyPrev)*(zy - zyPrev) < 1e-12) {
                 iter = maxIters; // inside
                 break;
@@ -207,7 +207,6 @@ int main() {
 
 
     // ----------------- Render Loop -----------------
-    int cnt = 0; 
     while (!glfwWindowShouldClose(window)) {
 
         // Handle inputs
@@ -262,45 +261,6 @@ int main() {
 
             scrollY = 0.0; // consume the event
         }
-
-        // // lerp to zoom in/out
-        // if ((glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)) {
-            
-        //     // compute mouse position in complex plane
-        //     glfwGetCursorPos(window, &mx, &my);
-        //     double mouseX = (mx / (WIDTH-1)) * (xmax - xmin) + xmin;
-        //     double mouseY = ((HEIGHT - my) / (HEIGHT-1)) * (ymax - ymin) + ymin;
-
-        //     xmin += (mouseX - xmin) * zoomFactor;
-        //     xmax += (mouseX - xmax) * zoomFactor;
-        //     ymin += (mouseY - ymin) * zoomFactor;
-        //     ymax += (mouseY - ymax) * zoomFactor;
-        // }
-        // if ((glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)) {
-        //     // compute mouse position in complex plane
-        //     glfwGetCursorPos(window, &mx, &my);
-        //     double mouseX = (mx / (WIDTH-1)) * (xmax - xmin) + xmin;
-        //     double mouseY = ((HEIGHT - my) / (HEIGHT-1)) * (ymax - ymin) + ymin;
-        //     //double mouseX = -0.75;
-        //     //double mouseY = 0;
-        //     xmin -= (mouseX - xmin) * zoomFactor;
-        //     xmax -= (mouseX - xmax) * zoomFactor;
-        //     ymin -= (mouseY - ymin) * zoomFactor;
-        //     ymax -= (mouseY - ymax) * zoomFactor;
-        // }
-
-        double zoomFactor = 0.05; // Adjust zoom speed
-        
-
-        //cout << "Mouse: " << xpos << ", " << ypos << "\n";
-        cnt++;
-        //cout << "Frame: " << cnt << "\n";
-
-
-
-
-
-
 
         // Map CUDA buffer
         cudaGraphicsMapResources(1, &cudaPBO, 0);
