@@ -49,16 +49,8 @@ __global__ void drawGradient(uchar4* pixels, int width, int height, double xmin,
     double zx = 0.0f, zy = 0.0f, zxPrev = 0.0f, zyPrev = 0.0f;
     int iter = 0;
     while (zx*zx + zy*zy < 4.0f && iter < maxIters) {
-
-        if (iter % 20 == 19) {
-            if ((zx - zxPrev)*(zx - zxPrev) + (zy - zyPrev)*(zy - zyPrev) < 1e-12) {
-                iter = maxIters; // inside
-                break;
-            }
-            zxPrev = zx;
-            zyPrev = zy;
-        }
-
+        zx = abs(zx);
+        zy = abs(zy);
         double tmp = zx*zx - zy*zy + u;
         zy = 2.0f * zx * zy + v;
         zx = tmp;
@@ -166,7 +158,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Mandlebrot Set", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Burning Ship", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create window\n";
         glfwTerminate();
@@ -219,7 +211,6 @@ int main() {
             double mx, my;
             glfwGetCursorPos(window, &mx, &my);
             my = HEIGHT - my;
-
             if (!dragging) {
                 // just started dragging
                 dragging = true;
