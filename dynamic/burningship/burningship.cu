@@ -16,8 +16,8 @@ const int HEIGHT = 900;
 // set up initial positions based on ratio
 double ratio = (double) WIDTH   / (double)HEIGHT;
 double zoomFactor = 0.05; // Adjust zoom speed
-double xmin = -0.75 - ratio; double xmax = -0.75 + ratio;
 double ymin = -1; double ymax = 1;
+double xmin = -0.75 + ratio*ymin; double xmax = -0.75 + ratio*ymax;
 double scrollX = 0.0, scrollY = 0.0;
 
 
@@ -41,24 +41,14 @@ __global__ void drawGradient(uchar4* pixels, int width, int height, double xmin,
     
     double u = xmin + (xmax - xmin) * x / (width-1);
     double v = ymax - (ymax - ymin) * y / (height-1);
-
-    // check if mandlebrot
     
     // adaptive max iterations based on zoom level
     int maxIters = min(2000, (int)(200 + 50 * sqrt(1/curZoom)));
     double zx = 0.0f, zy = 0.0f, zxPrev = 0.0f, zyPrev = 0.0f;
     int iter = 0;
     while (zx*zx + zy*zy < 4.0f && iter < maxIters) {
-
-        if (iter % 32 == 31) {
-            if ((zx - zxPrev)*(zx - zxPrev) + (zy - zyPrev)*(zy - zyPrev) < 1e-12) {
-                iter = maxIters; // inside
-                break;
-            }
-            zxPrev = zx;
-            zyPrev = zy;
-        }
-
+        zx = abs(zx);
+        zy = abs(zy);
         double tmp = zx*zx - zy*zy + u;
         zy = 2.0f * zx * zy + v;
         zx = tmp;
@@ -157,8 +147,7 @@ void initTexturePBO() {
 
 // ----------------- Main -----------------
 int main() {
-    cout << ratio << endl;
-    if (!glfwInit()) {
+        if (!glfwInit()) {
         std::cerr << "Failed to init GLFW\n";
         return -1;
     }
@@ -166,7 +155,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Mandlebrot Set", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Burning Ship", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create window\n";
         glfwTerminate();
@@ -218,7 +207,6 @@ int main() {
             double mx, my;
             glfwGetCursorPos(window, &mx, &my);
             my = HEIGHT - my;
-
             if (!dragging) {
                 // just started dragging
                 dragging = true;
@@ -250,7 +238,7 @@ int main() {
             glfwGetCursorPos(window, &mx, &my);
 
             double mouseX = (mx / (WIDTH-1)) * (xmax - xmin) + xmin;
-            double mouseY = ((HEIGHT - my) / (HEIGHT-1)) * (ymax - ymin) + ymin;
+            double mouseY = (my / (HEIGHT-1)) * (ymax - ymin) + ymin;
 
             double zoomFactor = (scrollY > 0) ? 0.9 : 1.1;
 

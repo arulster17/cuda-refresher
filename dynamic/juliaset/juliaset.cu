@@ -15,10 +15,10 @@ const int HEIGHT = 900;
 
 // set up initial positions based on ratio
 double ratio = (double) WIDTH   / (double)HEIGHT;
-double zoomFactor = 0.05; // Adjust zoom speed
-double xmin = -0.75 - ratio; double xmax = -0.75 + ratio;
-double ymin = -1; double ymax = 1;
+double ymin = -2; double ymax = 2;
+double xmin = ratio * ymin; double xmax = ratio * ymax;
 double scrollX = 0.0, scrollY = 0.0;
+double cx = 0, cy = 0;
 
 
 cudaGraphicsResource* cudaPBO;
@@ -32,7 +32,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 // ----------------- CUDA Kernel -----------------
-__global__ void drawGradient(uchar4* pixels, int width, int height, double xmin, double xmax, double ymin, double ymax, double curZoom) {
+__global__ void drawGradient(uchar4* pixels, int width, int height, double xmin, double xmax, double ymin, double ymax, double cx, double cy) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if (x >= width || y >= height) return;
@@ -41,21 +41,16 @@ __global__ void drawGradient(uchar4* pixels, int width, int height, double xmin,
     
     double u = xmin + (xmax - xmin) * x / (width-1);
     double v = ymax - (ymax - ymin) * y / (height-1);
-
-    // check if mandlebrot
     
-    // adaptive max iterations based on zoom level
-    int maxIters = min(2000, (int)(200 + 50 * sqrt(1/curZoom)));
-    double zx = 0.0f, zy = 0.0f, zxPrev = 0.0f, zyPrev = 0.0f;
+    int maxIters = 1000;
     int iter = 0;
-    while (zx*zx + zy*zy < 4.0f && iter < maxIters) {
-        zx = abs(zx);
-        zy = abs(zy);
-        double tmp = zx*zx - zy*zy + u;
-        zy = 2.0f * zx * zy + v;
-        zx = tmp;
+    while (u*u + v*v < 4.0f && iter < maxIters) {
+        float tmp = u*u - v*v + cx;
+        v = 2.0f * u * v + cy;
+        u = tmp;
         iter++;
     }
+
     unsigned char r, g, b, a;
     if (iter == maxIters) {
         r = 0;
@@ -68,6 +63,10 @@ __global__ void drawGradient(uchar4* pixels, int width, int height, double xmin,
         g = (unsigned char)(128 + 127 * sin(6.2831 * t + 2.094));
         b = (unsigned char)(128 + 127 * sin(6.2831 * t + 4.188));
         a = 255;
+        // float t = (float)iter / maxIters; // normalized iteration count
+        // img[idx + 0] = (unsigned char)(9*(1-t)*t*t*t*255);
+        // img[idx + 1] = (unsigned char)(15*(1-t)*(1-t)*t*t*255);
+        // img[idx + 2] = (unsigned char)(8.5*(1-t)*(1-t)*(1-t)*t*255);
     }
     pixels[idx] = make_uchar4(r, g, b, a);
 }
@@ -157,7 +156,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Burning Ship", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Julia Sets", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create window\n";
         glfwTerminate();
@@ -201,12 +200,20 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
 
         // Handle inputs
-        double mx, my, lastX, lastY;
+        double mx, my;
+        
         bool dragging;
         
         // drag
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
             double mx, my;
+            glfwGetCursorPos(window, &mx, &my);
+            my = HEIGHT - my;
+            cx = xmin + (xmax - xmin) * (mx / (WIDTH  - 1));
+            cy = ymin + (ymax - ymin) * (my / (HEIGHT - 1));
+        }
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            double mx, my, lastX, lastY;;
             glfwGetCursorPos(window, &mx, &my);
             my = HEIGHT - my;
             if (!dragging) {
@@ -234,13 +241,12 @@ int main() {
         } else {
             dragging = false;
         }
-
         if (scrollY != 0.0) {
             double mx, my;
             glfwGetCursorPos(window, &mx, &my);
 
             double mouseX = (mx / (WIDTH-1)) * (xmax - xmin) + xmin;
-            double mouseY = ((HEIGHT - my) / (HEIGHT-1)) * (ymax - ymin) + ymin;
+            double mouseY = (my / (HEIGHT-1)) * (ymax - ymin) + ymin;
 
             double zoomFactor = (scrollY > 0) ? 0.9 : 1.1;
 
@@ -261,7 +267,7 @@ int main() {
         // Run kernel
         dim3 block(16, 16);
         dim3 grid((WIDTH + 15) / 16, (HEIGHT + 15) / 16);
-        drawGradient<<<grid, block>>>(devPtr, WIDTH, HEIGHT, xmin, xmax, ymin, ymax, (xmax - xmin) / (2.0 * ratio));
+        drawGradient<<<grid, block>>>(devPtr, WIDTH, HEIGHT, xmin, xmax, ymin, ymax, cx, cy);
 
         cudaGraphicsUnmapResources(1, &cudaPBO, 0);
 

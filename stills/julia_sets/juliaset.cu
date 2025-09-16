@@ -17,15 +17,9 @@ __global__ void drawJuliaSet(unsigned char* img, int W, int H) {
     float ymin = -1.0f, ymax = 1.0f;
     float u = xmin + (xmax - xmin) * ((float)x / (W - 1));
     float v = ymin + (ymax - ymin) * ((float)y / (H - 1));
-
-    // x and y are pixel coordinates, compute polar coordinates
-    //float r = hypot(x, y);
-    //float theta = atan2(y, x);
     
     int maxIters = 500;
     float cx = -0.74975f, cy = 0.036745f;
-
-
     int iter = 0;
     while (u*u + v*v < 4.0f && iter < maxIters) {
         float tmp = u*u - v*v + cx;
