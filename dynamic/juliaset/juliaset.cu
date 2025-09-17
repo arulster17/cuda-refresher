@@ -59,14 +59,15 @@ __global__ void drawGradient(uchar4* pixels, int width, int height, double xmin,
         a = 255;
     } else {
         double t = logf(iter + 1) / logf(maxIters);
-        r = (unsigned char)(128 + 127 * sin(6.2831 * t));
-        g = (unsigned char)(128 + 127 * sin(6.2831 * t + 2.094));
-        b = (unsigned char)(128 + 127 * sin(6.2831 * t + 4.188));
+
+        r = (unsigned char)(9*(1-t)*t*t*t*255);
+        g = (unsigned char)(15*(1-t)*(1-t)*t*t*255);
+        b = (unsigned char)(8.5*(1-t)*(1-t)*(1-t)*t*255);
+
+        // r = (unsigned char)(128 + 127 * sin(6.2831 * t));
+        // g = (unsigned char)(128 + 127 * sin(6.2831 * t + 2.094));
+        // b = (unsigned char)(128 + 127 * sin(6.2831 * t + 4.188));
         a = 255;
-        // float t = (float)iter / maxIters; // normalized iteration count
-        // img[idx + 0] = (unsigned char)(9*(1-t)*t*t*t*255);
-        // img[idx + 1] = (unsigned char)(15*(1-t)*(1-t)*t*t*255);
-        // img[idx + 2] = (unsigned char)(8.5*(1-t)*(1-t)*(1-t)*t*255);
     }
     pixels[idx] = make_uchar4(r, g, b, a);
 }
